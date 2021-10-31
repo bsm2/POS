@@ -75,12 +75,18 @@ $(document).ready(function () {
             url: url,
             method: method,
             success: function(data) {
-
+                console.log(data);
                 $('#loading').css('display', 'none');
                 $('#order-product-list').empty();
                 $('#order-product-list').append(data);
 
-            }
+            },
+            error: function(XMLHttpRequest, textStatus, errorThrown) { 
+                    $('#loading').css('display', 'none');
+                    $('#order-product-list').css('color', 'red');
+                    $('#order-product-list').append("Error: " + errorThrown);
+                    
+                }  
         })
 
     });//end of order products click

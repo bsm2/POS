@@ -13,9 +13,15 @@ class OrderController extends Controller
      *
      * @return \Illuminate\Http\Response
      */
-    public function index()
+    public function index(Request $request)
     {
-        $orders=Order::latest()->paginate(5);
+
+        //where order has relation with client
+        $orders=Order::whereHas('client',function($query)use($request) {
+            //where client name 
+            return $query->where('name','like','%'.$request->search.'%');
+
+        })->latest()->paginate(5);
         return view('dashboard.orders.index')->with('orders',$orders);
     }
 
@@ -46,9 +52,11 @@ class OrderController extends Controller
      * @param  \App\Models\Order  $order
      * @return \Illuminate\Http\Response
      */
-    public function show(Order $order)
+    public function showProducts(Order $order)
     {
-        //
+        $products = $order->products()->get();
+        //dd($products);
+        return view('dashboard.orders.products',compact(['products','order']));
     }
 
     /**
@@ -82,6 +90,17 @@ class OrderController extends Controller
      */
     public function destroy(Order $order)
     {
-        //
+        foreach ($order->products as $product) {
+            //dd($product->stock + $product->pivot->quantity);
+            $product->update([
+                'stock'=>$product->stock + $product->pivot->quantity
+
+            ]);
+        }
+
+        $order->delete();
+
+        session()->flash('success',__('site.deleted_successfully'));
+        return redirect()->route('dashboard.orders.index');
     }
 }

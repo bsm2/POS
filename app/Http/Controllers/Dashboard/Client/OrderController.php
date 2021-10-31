@@ -29,8 +29,8 @@ class OrderController extends Controller
     public function create(Request $request,Client $client)
     {
         $categories=Category::all();
-        
-        return view('dashboard.clients.orders.create',compact('categories','client'));
+        $orders= $client->orders()->latest()->paginate(3);
+        return view('dashboard.clients.orders.create',compact('categories','client','orders'));
     }
 
     /**
@@ -43,8 +43,7 @@ class OrderController extends Controller
     {
 
         $request->validate([
-            'products'=>'required|array',
-            //'quantity'=>'required|array'
+            'products'=>'required|array'
         ]);
         //add order to the client
         $order=$client->orders()->create([]);
@@ -89,7 +88,8 @@ class OrderController extends Controller
      */
     public function edit(Client $client,Order $order)
     {
-        //
+        $categories=Category::all();
+        return view('dashboard.clients.orders.edit',compact('order','categories','client'));
     }
 
     /**
@@ -101,7 +101,43 @@ class OrderController extends Controller
      */
     public function update(Request $request,Client $client, Order $order)
     {
-        //
+        //dd($request->all());
+
+        $request->validate([
+            'products'=>'required|array'
+        ]);
+
+        foreach ($order->products as $product) {
+            //dd($product->stock + $product->pivot->quantity);
+            $product->update([
+                'stock'=>$product->stock + $product->pivot->quantity
+
+            ]);
+        }
+        $order->delete();
+        //add order to the client
+
+        $order=$client->orders()->create([]);
+        //dd($order);
+        $order->products()->attach($request->products);
+        $total_price = 0;
+        foreach ($request->products as $id=>$quantity_arr) {
+
+            $product = Product::FindOrFail($id);
+            $total_price +=$product->sale_price * $quantity_arr['quantity'];
+            
+            $product->update([
+                'stock'=> $product->stock - $quantity_arr['quantity']
+            ]);
+        }
+
+        $order->update([
+            'total_price'=>$total_price
+        ]);
+
+        session()->flash('success',__('site.added_successfully'));
+        return redirect()->route('dashboard.orders.index');
+        
     }
 
     /**

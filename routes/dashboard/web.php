@@ -20,7 +20,8 @@ Route::group(
             Route::resource('products', ProductController::class);
             Route::resource('clients', ClientController::class);
             Route::resource('clients.orders', Client\OrderController::class);
-            Route::resource('orders', OrderController::class);
+            Route::resource('orders', OrderController::class)->except(['showProducts']);
+            Route::get('/orders/{order}/products', 'OrderController@showProducts')->name('orders.products');
         });
 
 });
